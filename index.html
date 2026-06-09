@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorldTime</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-name">WorldTime</span>
+        <span class="brand-sep">—</span>
+        <span id="localClock" class="local-clock">–</span>
+      </div>
+      <button id="addBtn" class="btn-add">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/>
+        </svg>
+        Přidat město
+      </button>
+    </div>
+  </header>
+
+  <div id="searchOverlay" class="search-overlay hidden">
+    <div class="search-box">
+      <div class="search-header">
+        <span>Hledat město</span>
+        <button id="closeSearch" class="close-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+          </svg>
+        </button>
+      </div>
+      <input type="text" id="citySearch" placeholder="Praha, Tokyo, New York…" autocomplete="off" spellcheck="false" />
+      <div id="cityResults" class="city-results"></div>
+    </div>
+  </div>
+
+  <main id="grid" class="grid">
+    <div id="emptyState" class="empty-state">
+      <p class="empty-title">Žádná města</p>
+      <p class="empty-hint">Klikni na <strong>+ Přidat město</strong></p>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="cities.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
