@@ -1,67 +1,76 @@
 # WorldTime
 
-Sledování aktuálního času na libovolných místech světa. Lze přidat vlastní seznam měst, který se ukládá.
+Jednoduchá webová aplikace pro sledování aktuálního času ve městech po celém světě. U každého města zobrazuje čas, datum, počasí, mapu, časové pásmo a další užitečné informace.
 
-## Účel aplikace
+## Funkce
 
-Jednoduchý osobní world clock. Lze zobrazit několik časových zón a měst ve světě najednou.
+- Přidávání a odebírání měst
+- Vyhledávání v databázi měst
+- Aktuální čas a datum v reálném čase
+- Zobrazení časového rozdílu oproti uživateli
+- Fáze dne (svítání, den, soumrak, noc)
+- Automatické určení ročního období
+- Aktuální počasí
+- Mapa lokality
+- Uložení měst pomocí localStorage
+- PWA podpora (instalace a offline režim)
 
-## Use-case diagram
+## Jak aplikace funguje
 
-```
+```text
 Uživatel
    │
-   ├── otevře aplikaci
-   │     └── načte uložená místa (localStorage)
-   │
    ├── přidá město
-   │     ├── vyhledá název → filtruje lokální seznam (KNOWN_CITIES)
-   │     └── uloží do localStorage
+   │     ├── vyhledá město
+   │     ├── vytvoří se karta
+   │     └── uloží se do localStorage
    │
-   ├── sleduje čas
-   │     ├── karty se aktualizují každou sekundu (setInterval)
-   │     ├── barva karty = den / noc
+   ├── sleduje informace
+   │     ├── čas a datum
+   │     ├── počasí
+   │     ├── mapu
+   │     ├── časový rozdíl
+   │     └── roční období
    │
    └── odebere město
-         └── uloží změnu do localStorage
+         └── uloží změnu
 ```
 
 ## Struktura projektu
 
+```text
+index.html     – struktura aplikace
+style.css      – vzhled aplikace
+app.js         – hlavní logika
+cities.js      – databáze měst
+manifest.json  – PWA manifest
+sw.js          – service worker
+README.md      – dokumentace
 ```
-index.html    – HTML struktura
-style.css     – styly
-app.js        – logika: karty, čas, localStorage
-manifest.json – PWA manifest
-sw.js         – service worker
-README.md     – dokumentace
+
+## Použité technologie
+
+| Technologie | Účel |
+|------------|------|
+| JavaScript | Logika aplikace |
+| Intl.DateTimeFormat | Výpočet času v časových pásmech |
+| Open-Meteo API | Počasí |
+| Leaflet.js | Mapy |
+| OpenStreetMap | Mapové podklady |
+| localStorage | Uložení dat |
+| PWA | Offline režim a instalace |
+
+## Ukládání dat
+
+Přidaná města jsou ukládána do localStorage pod klíčem:
+
+```text
+worldtime_data
 ```
 
-## Použitá API / zdroje dat
+Po opětovném otevření aplikace se automaticky obnoví.
 
-| Endpoint | Popis |
-|----------|-------|
-| `GET https://worldtimeapi.org/api/timezone/{tz}` | Při přidání města – vrátí UTC offset, zkratku (např. CEST) a příznak letního času |
-| `Intl.DateTimeFormat` (browser API) | Průběžný výpočet lokálního času každou sekundu |
-| Lokální seznam `KNOWN_CITIES` |
-
-WorldTime API se volá **jednou při přidání místa**. Výsledek (offset, zkratka, DST) se uloží do localStorage spolu s místem. Sekundové tikání pak běží čistě lokálně – API se nevolá zbytečně znovu.
-
-## Jak to funguje
-
-### Karty s časem
-Každou sekundu se volá `Intl.DateTimeFormat` s IANA timezone daného města. Vrátí hodiny, minuty, sekundy, datum a den v týdnu v češtině. Barva karty se mění podle toho, zda je v daném místě 6:00–21:00 (den = zelená) nebo jinak (noc = modrá).
-
-### Sunbar
-Tenký proužek na vrchu stránky vizualizuje, kde na světě je právě den. Sluneční poledne je v té délce, kde je místní sluneční čas 12:00 – tedy na poledníku `(12 - UTC_hodiny) × 15°`. Den pokrývá ±90° od tohoto poledníku.
-
-### localStorage
-Uložená místa jsou serializovaná jako JSON pole v klíči `worldtime_places`. Při každém přidání nebo odebrání města se localStorage aktualizuje. Při načtení stránky se místa obnoví.
-
-### PWA
-Service worker cachuje statické soubory. Aplikace funguje offline – uložená místa jsou pořád vidět a čas se počítá lokálně bez přístupu k internetu.
-
-## Spuštění lokálně
+## Spuštění
 
 ```bash
 npx serve .
