@@ -252,10 +252,8 @@ function createCard(place) {
 
   updateCard(card);
 
-  // Init map after short delay (Leaflet needs the el in DOM)
   setTimeout(() => initMap(card, lat, lon, id), 60);
 
-  // Fetch weather
   fetchWeather(lat, lon, card);
 }
 
@@ -266,7 +264,6 @@ function removePlace(tz) {
   if (!places.length) document.getElementById('emptyState').style.display = 'flex';
 }
 
-// Restore saved places
 places.forEach(createCard);
 if (!places.length) document.getElementById('emptyState').style.display = 'flex';
 
