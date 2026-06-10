@@ -118,6 +118,43 @@ function applyWeather(cardEl, w) {
     </div>`;
 }
 
+// ── Open-Meteo ────────────────────
+
+async function fetchTimezone(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    return data.timezone ?? null;
+  } catch { return null; }
+}
+
+// ── Nominatim ───────────────────
+
+async function reverseGeocode(lat, lon) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=cs`;
+  try {
+    const res = await fetch(url, { headers: { 'Accept-Language': 'cs' } });
+    const data = await res.json();
+    const addr = data.address ?? {};
+
+    const name =
+      addr.village  ||
+      addr.town     ||
+      addr.city     ||
+      addr.municipality ||
+      addr.county   ||
+      addr.state    ||
+      data.name     ||
+      `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+
+    const country = addr.country_code?.toUpperCase() ?? '??';
+    return { name, country };
+  } catch {
+    return { name: `${lat.toFixed(2)}, ${lon.toFixed(2)}`, country: '??' };
+  }
+}
+
 // ── Mapa ──────────────────────────────────────────────────────────────
 
 const maps = {};
@@ -154,6 +191,110 @@ function initMap(cardEl, lat, lon, id) {
   maps[id] = map;
 }
 
+// ── vybrani lokace na mape ────────────────────────────────────────────────────────
+
+let pickerMap = null;
+let pickerMarker = null;
+
+function PickerMap() {
+  if (pickerMap) return;
+
+  const container = document.getElementById('pickerMap');
+  if (!container) return;
+
+  pickerMap = L.map(container, {
+    center: [20, 0],
+    zoom: 2,
+    zoomControl: true,
+    scrollWheelZoom: true,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18
+  }).addTo(pickerMap);
+
+  pickerMap.on('click', async (e) => {
+    const { lat, lng } = e.latlng;
+    setPickerStatus('loading', 'Zjišťuji polohu…');
+
+    if (pickerMarker) {
+      pickerMarker.setLatLng([lat, lng]);
+    } else {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #666;box-shadow:0 0 0 3px rgba(255,255,255,0.3)"></div>`,
+        iconAnchor: [5, 5]
+      });
+      pickerMarker = L.marker([lat, lng], { icon }).addTo(pickerMap);
+    }
+
+    const [geo, tz] = await Promise.all([
+      reverseGeocode(lat, lng),
+      fetchTimezone(lat, lng)
+    ]);
+
+    if (!tz) {
+      setPickerStatus('error', 'Nepodařilo se zjistit časové pásmo. Zkus jiné místo.');
+      return;
+    }
+
+    const place = {
+      name: geo.name,
+      country: geo.country,
+      tz,
+      lat: parseFloat(lat.toFixed(4)),
+      lon: parseFloat(lng.toFixed(4))
+    };
+
+    setPickerStatus('confirm', '', place);
+  });
+}
+
+function setPickerStatus(type, msg, place) {
+  const el = document.getElementById('pickerStatus');
+  if (!el) return;
+
+  if (type === 'loading') {
+    el.innerHTML = `<span class="picker-loading">${msg}</span>`;
+  } else if (type === 'error' || type === 'warn') {
+    el.innerHTML = `<span class="picker-warn">${msg}</span>`;
+  } else if (type === 'confirm') {
+    el.innerHTML = `
+      <div class="picker-confirm">
+        <div class="picker-confirm-info">
+          <strong>${place.name}</strong>
+          <span>${place.country} · ${place.tz}</span>
+        </div>
+        <button class="picker-add-btn" id="pickerAddBtn">+ Přidat</button>
+      </div>`;
+    document.getElementById('pickerAddBtn').addEventListener('click', () => {
+      places.push(place);
+      save();
+      createCard(place);
+      closeSearch();
+    });
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+// ── okna ──────────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.search-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('panelText').classList.toggle('hidden', tab !== 'text');
+  document.getElementById('panelMap').classList.toggle('hidden', tab !== 'map');
+
+  if (tab === 'map') {
+      PickerMap();
+  }
+}
+
+document.querySelectorAll('.search-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
 // ── Renderování času ───────────────────────────────────────────────────
 
 function updateCard(card) {
@@ -181,13 +322,11 @@ function updateCard(card) {
     card.querySelector('.card-time').textContent = timeStr;
     card.querySelector('.card-date').textContent = dateStr;
 
-    // rozdíl
     const tzOff    = getTzOffsetMinutes(tz);
     const localOff = getLocalOffsetMinutes();
     const diff     = tzOff - localOff;
     card.querySelector('.card-diff').textContent = `(${formatDiff(diff)})`;
 
-    // popisky
     card.querySelector('.pill-phase').textContent  = PHASE_LABEL[phase];
     card.querySelector('.pill-season').textContent = getSeason(tz, lat);
     card.querySelector('.pill-offset').textContent = getOffsetStr(tz);
@@ -206,7 +345,7 @@ function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(places)); }
 
 function createCard(place) {
   const { name, country, tz, lat, lon } = place;
-  const id = `map-${tz.replace(/\//g,'-')}`;
+  const id = `map-${tz.replace(/\//g,'-')}-${Math.random().toString(36).slice(2,6)}`;
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -291,6 +430,7 @@ const resultsEl    = document.getElementById('cityResults');
 
 function openSearch() {
   overlay.classList.remove('hidden');
+  switchTab('text');
   searchInput.focus();
 }
 
@@ -298,6 +438,12 @@ function closeSearch() {
   overlay.classList.add('hidden');
   searchInput.value = '';
   resultsEl.innerHTML = '';
+
+  document.getElementById('pickerStatus').innerHTML = '';
+  if (pickerMarker) {
+    pickerMarker.remove();
+    pickerMarker = null;
+  }
 }
 
 addBtn.addEventListener('click', openSearch);

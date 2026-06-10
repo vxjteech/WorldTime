@@ -57,6 +57,7 @@ README.md      – dokumentace
 | Open-Meteo API | Počasí |
 | Leaflet.js | Mapy |
 | OpenStreetMap | Mapové podklady |
+| Nominatim | Reversní hledání lokace na mapě
 | localStorage | Uložení dat |
 | PWA | Offline režim a instalace |
 
