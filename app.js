@@ -51,10 +51,6 @@ function formatDiff(diffMin) {
   return m === 0 ? `${sign}${h}h` : `${sign}${h}h ${m}m`;
 }
 
-function isBusinessHours(h, m) {
-  return (h * 60 + m) >= 9 * 60 && (h * 60 + m) < 18 * 60;
-}
-
 // ── Počasí (Open-Meteo) ─────────────────────────────
 
 const WMO = {
